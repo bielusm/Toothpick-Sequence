@@ -21,9 +21,15 @@
     <ClCompile Include="loadShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Toothpick.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="loadShaders.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Toothpick.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

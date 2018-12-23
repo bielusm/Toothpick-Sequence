@@ -1,39 +1,61 @@
 #include <stdio.h>
-#include <stdlib.h>
 
+#include <vector>
 #include <GL\glew.h>
-#include <GL/GL.h>
 #include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
 
+#include "Toothpick.hpp"
 #include "loadshaders.hpp"
 
 using namespace glm;
 
-class ToothPick
-{
-	float x, y;
-	bool facingUp;
-	ToothPick(float x, float y, bool facingUp)
-	{
-		this->x = x;
-		this->y = y;
-		this->facingUp = facingUp;
-	}
+#define PICKWIDTH 0.2f
 
-
-};
-
-static const GLfloat g_vertex_buffer_data[] = {
-	-0.1f, 0.0f, 0.0f,
-	0.1f, 0.0f, 0.0f,
-
-};
-
-
+#define MAX_PICKS 3
 int main()
 {
+	std::vector<Toothpick> picks;
+	picks.push_back(Toothpick(0.0f, 0.0f, false, PICKWIDTH));
+	int numPicks = 1;
+	size_t currPickSize = picks.size();
+		for ( size_t j = 0; j < currPickSize && numPicks < MAX_PICKS; j++)
+		{
+			Toothpick::Dir dir = picks[j].freeSide();
+			if (dir != Toothpick::Dir::none)
+			{
+				switch (dir)
+				{
+				case Toothpick::Dir::left:
+					picks.push_back(Toothpick(picks[j].getLeft(), picks[j].getTop(), true, PICKWIDTH));
+					break;
+				case Toothpick::Dir::right:
+					picks.push_back(Toothpick(picks[j].getRight(), picks[j].getTop(), true, PICKWIDTH));
+					break;
+				case Toothpick::Dir::top:
+					picks.push_back(Toothpick(picks[j].getLeft(), picks[j].getTop(), false, PICKWIDTH));
+					break;
+				case Toothpick::Dir::bottom:
+					picks.push_back(Toothpick(picks[j].getLeft(), picks[j].getBottom(), false, PICKWIDTH));
+					break;
+				}
+				picks[j].setCaptured(dir);
+				numPicks++;
+			}
+		}
+	std::vector<GLfloat> g_vertex_buffer_data;
+	int size = static_cast<int>(picks.size()); //so compiler doesen't complain about size_t vs int
+	for (int i = 0; i < size; i++)
+	{
+		g_vertex_buffer_data.push_back(picks[i].getLeft());
+			g_vertex_buffer_data.push_back(picks[i].getTop());
+			g_vertex_buffer_data.push_back(0.0f);
+
+			g_vertex_buffer_data.push_back(picks[i].getRight());
+		g_vertex_buffer_data.push_back(picks[i].getBottom());
+		g_vertex_buffer_data.push_back(0.0f);
+	}
+
 	// Initialise GLFW
 	glewExperimental = true; // Needed for core profile
 	if (!glfwInit())
@@ -77,7 +99,7 @@ int main()
 	// The following commands will talk about our 'vertexbuffer' buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	// Give our vertices to OpenGL.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*g_vertex_buffer_data.size(), &g_vertex_buffer_data.front(), GL_STATIC_DRAW);
 
 
 	GLuint programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
@@ -96,8 +118,8 @@ int main()
 			0,                  // stride
 			(void*)0            // array buffer offset
 		);
-		// Draw the triangle !
-		glDrawArrays(GL_LINES, 0, 2); // Starting from vertex 0; 3 vertices total -> 1 triangle
+		int size = static_cast<int>(g_vertex_buffer_data.size());
+		glDrawArrays(GL_LINES, 0, 6); //hard coded to 4
 		glDisableVertexAttribArray(0);
 
 		// Swap buffers
