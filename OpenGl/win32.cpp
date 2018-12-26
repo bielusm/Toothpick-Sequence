@@ -4,7 +4,8 @@
 #include <GL\glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "Toothpick.hpp"
 #include "loadshaders.hpp"
 
@@ -19,11 +20,15 @@ bool noPerpPicks(Toothpick pick);
 #define MAX_PICKS 25
 
 std::vector<Toothpick> picks;
-int main()
+GLuint VertexArrayID;
+int numPicks = 1;
+int allowedPicks;
+GLuint programID;
+GLFWwindow* window; // (In the accompanying source code, this variable is global for simplicity)
+
+int setup()
 {
 	picks.push_back(Toothpick(0.0f, 0.0f, false, PICKWIDTH));
-	int numPicks = 1;
-
 	// Initialise GLFW
 	glewExperimental = true; // Needed for core profile
 	if (!glfwInit())
@@ -38,7 +43,6 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // We don't want the old OpenGL 
 
 																   // Open a window and create its OpenGL context
-	GLFWwindow* window; // (In the accompanying source code, this variable is global for simplicity)
 	window = glfwCreateWindow(1280, 720, "Chop Sticks", NULL, NULL);
 	if (window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
@@ -55,95 +59,107 @@ int main()
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
-	GLuint VertexArrayID;
+
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
-	int allowedPicks = 1;
-	GLuint programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
-	do {
-		for (size_t j = 0; j < picks.size() && numPicks < allowedPicks; j++)
+	allowedPicks = 1;
+	programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
+	return 0;
+}
+
+void update()
+{
+	for (size_t j = 0; j < picks.size() && numPicks < allowedPicks; j++)
+	{
+		Toothpick::Dir dir = picks[j].freeSide();
+		while (dir != Toothpick::Dir::none && numPicks < allowedPicks)
 		{
-			Toothpick::Dir dir = picks[j].freeSide();
-			while (dir != Toothpick::Dir::none && numPicks < allowedPicks)
+			Toothpick temp;
+			switch (dir)
 			{
-				Toothpick temp;
-				switch (dir)
-				{
-				case Toothpick::Dir::left:
-					temp  = Toothpick(picks[j].getLeft()-PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
-					break;
-				case Toothpick::Dir::right:
-					temp = Toothpick(picks[j].getRight()+PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
-					break;
-				case Toothpick::Dir::top:
-					temp = Toothpick(picks[j].getLeft(), picks[j].getTop()+PICK_OFFSET, false, PICKWIDTH);
-					break;
-				case Toothpick::Dir::bottom:
-					temp = Toothpick(picks[j].getLeft(), picks[j].getBottom()-PICK_OFFSET, false, PICKWIDTH);
-					break;
-				}
-				picks[j].setCaptured(dir);
-				dir = picks[j].freeSide();
-				if (noPerpPicks(temp))
-				{
-					picks.push_back(temp);
-					setSides(&picks[picks.size() - 1]);
-					numPicks++;
-				}
+			case Toothpick::Dir::left:
+				temp = Toothpick(picks[j].getLeft() - PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
+				break;
+			case Toothpick::Dir::right:
+				temp = Toothpick(picks[j].getRight() + PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
+				break;
+			case Toothpick::Dir::top:
+				temp = Toothpick(picks[j].getLeft(), picks[j].getTop() + PICK_OFFSET, false, PICKWIDTH);
+				break;
+			case Toothpick::Dir::bottom:
+				temp = Toothpick(picks[j].getLeft(), picks[j].getBottom() - PICK_OFFSET, false, PICKWIDTH);
+				break;
+			}
+			picks[j].setCaptured(dir);
+			dir = picks[j].freeSide();
+			if (noPerpPicks(temp))
+			{
+				picks.push_back(temp);
+				setSides(&picks[picks.size() - 1]);
+				numPicks++;
 			}
 		}
-		std::vector<GLfloat> g_vertex_buffer_data;
-		int size = static_cast<int>(picks.size()); //so compiler doesen't complain about size_t vs int
-												   // Clear the screen.
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glUseProgram(programID);
-		
-		float xOffset, yOffset;
-		for (int i = 0; i < size; i++)
-		{
-			bool facingUp = picks[i].getFacingUp();
-			xOffset = (facingUp) ? 0 : PICK_OFFSET;
-			yOffset = (facingUp) ? PICK_OFFSET : 0;
+	}
 
-			g_vertex_buffer_data.push_back(picks[i].getLeft()+xOffset);
-			g_vertex_buffer_data.push_back(picks[i].getTop()-yOffset);
-			g_vertex_buffer_data.push_back(0.0f);
 
-			g_vertex_buffer_data.push_back(picks[i].getRight()-xOffset);
-			g_vertex_buffer_data.push_back(picks[i].getBottom()+yOffset);
-			g_vertex_buffer_data.push_back(0.0f);
-		}
-		GLuint vbo;
-		glGenBuffers(1, &vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*g_vertex_buffer_data.size(), &g_vertex_buffer_data.front(), GL_STATIC_DRAW);
+}
 
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(
-			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(3, GL_FLOAT, g_vertex_buffer_data.size()*sizeof(GLfloat), &vbo);	
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glScalef(4, 4, 4);
-		glDrawArrays(GL_LINES, 0, g_vertex_buffer_data.size()); //hard coded to 4
-		
-		glDisableClientState(GL_VERTEX_ARRAY);
+void draw()
+{											   // Clear the screen.
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(programID);
 
-																// Swap buffers
-		glfwSwapBuffers(window);
+	float xOffset, yOffset;
+
+	std::vector<GLfloat> g_vertex_buffer_data;
+	int size = static_cast<int>(picks.size()); //so compiler doesen't complain about size_t vs int
+	for (int i = 0; i < size; i++)
+	{
+		bool facingUp = picks[i].getFacingUp();
+		xOffset = (facingUp) ? 0 : PICK_OFFSET;
+		yOffset = (facingUp) ? PICK_OFFSET : 0;
+
+		g_vertex_buffer_data.push_back(picks[i].getLeft() + xOffset);
+		g_vertex_buffer_data.push_back(picks[i].getTop() - yOffset);
+		g_vertex_buffer_data.push_back(0.0f);
+
+		g_vertex_buffer_data.push_back(picks[i].getRight() - xOffset);
+		g_vertex_buffer_data.push_back(picks[i].getBottom() + yOffset);
+		g_vertex_buffer_data.push_back(0.0f);
+	}
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*g_vertex_buffer_data.size(), &g_vertex_buffer_data.front(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(
+		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		3,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+	glVertexPointer(3, GL_FLOAT, g_vertex_buffer_data.size() * sizeof(GLfloat), &vbo);
+	glDrawArrays(GL_LINES, 0, g_vertex_buffer_data.size());
+
+
+	if (allowedPicks < MAX_PICKS)
+		allowedPicks++;
+
+	glfwSwapBuffers(window);
+}
+
+int main()
+{
+	setup();
+
+	do {
+		update();
+		draw();
 		glfwPollEvents();
-
-		if (allowedPicks < MAX_PICKS)
-			allowedPicks++;
-
 	} // Check if the ESC key was pressed or the window was closed
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
 		glfwWindowShouldClose(window) == 0);
