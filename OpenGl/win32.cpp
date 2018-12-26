@@ -17,11 +17,12 @@ bool noPerpPicks(Toothpick pick);
 #define PICKWIDTH 0.2f
 
 #define PICK_OFFSET 0.02f
-#define MAX_PICKS 20
+#define MAX_GEN 10
 
 std::vector<Toothpick> picks;
-int numPicks = 1;
-int allowedPicks;
+std::vector<Toothpick> deadPicks;
+int N = 1;
+int maxgen = MAX_GEN;
 
 
 GLuint VertexArrayID;
@@ -60,47 +61,53 @@ int setup()
 	}
 
 	// Ensure we can capture the escape key being pressed below
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
 
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
-	allowedPicks = 1;
+	//allowedPicks = 1;
 	programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
 	return 0;
 }
 
 void update()
 {
-	for (size_t j = 0; j < picks.size() && numPicks < allowedPicks; j++)
-	{
-		Toothpick::Dir dir = picks[j].freeSide();
-		while (dir != Toothpick::Dir::none && numPicks < allowedPicks)
+	if(N < maxgen)
+	{ 
+		int size = picks.size();
+		for (size_t j = 0; j < size; j++)
 		{
-			Toothpick temp;
-			switch (dir)
+			Toothpick::Dir dir = picks[j].freeSide();
+			while (dir != Toothpick::Dir::none)
 			{
-			case Toothpick::Dir::left:
-				temp = Toothpick(picks[j].getLeft() - PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
-				break;
-			case Toothpick::Dir::right:
-				temp = Toothpick(picks[j].getRight() + PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
-				break;
-			case Toothpick::Dir::top:
-				temp = Toothpick(picks[j].getLeft(), picks[j].getTop() + PICK_OFFSET, false, PICKWIDTH);
-				break;
-			case Toothpick::Dir::bottom:
-				temp = Toothpick(picks[j].getLeft(), picks[j].getBottom() - PICK_OFFSET, false, PICKWIDTH);
-				break;
+				Toothpick temp;
+				switch (dir)
+				{
+				case Toothpick::Dir::left:
+					temp = Toothpick(picks[j].getLeft() - PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
+					break;
+				case Toothpick::Dir::right:
+					temp = Toothpick(picks[j].getRight() + PICK_OFFSET, picks[j].getTop(), true, PICKWIDTH);
+					break;
+				case Toothpick::Dir::top:
+					temp = Toothpick(picks[j].getLeft(), picks[j].getTop() + PICK_OFFSET, false, PICKWIDTH);
+					break;
+				case Toothpick::Dir::bottom:
+					temp = Toothpick(picks[j].getLeft(), picks[j].getBottom() - PICK_OFFSET, false, PICKWIDTH);
+					break;
+				}
+				picks[j].setCaptured(dir);
+				dir = picks[j].freeSide();
+				//if (noPerpPicks(temp))
+				{
+					picks.push_back(temp);
+					setSides(&picks[picks.size() - 1]);
+				}
 			}
-			picks[j].setCaptured(dir);
-			dir = picks[j].freeSide();
-			if (noPerpPicks(temp))
-			{
-				picks.push_back(temp);
-				setSides(&picks[picks.size() - 1]);
-				numPicks++;
-			}
+			//deadPicks.push_back(picks[j]);
+		//	picks.erase(picks.begin()); //very slow consider a queue
+			N++;
 		}
 	}
 
@@ -109,7 +116,7 @@ void update()
 
 void draw()
 {	
-	glm::mat4 Projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f);
+	glm::mat4 Projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 10.0f);
 	//glm::mat4 View = glm::lookAt(
 	//	glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
 	//	glm::vec3(0, 0, 0), // and looks at the origin
@@ -140,6 +147,22 @@ void draw()
 		g_vertex_buffer_data.push_back(picks[i].getBottom() + yOffset);
 		g_vertex_buffer_data.push_back(0.0f);
 	}
+	size = static_cast<int>(deadPicks.size());
+	for (int i = 0; i < size; i++)
+	{
+		bool facingUp = picks[i].getFacingUp();
+		xOffset = (facingUp) ? 0 : PICK_OFFSET;
+		yOffset = (facingUp) ? PICK_OFFSET : 0;
+
+		g_vertex_buffer_data.push_back(deadPicks[i].getLeft() + xOffset);
+		g_vertex_buffer_data.push_back(deadPicks[i].getTop() - yOffset);
+		g_vertex_buffer_data.push_back(0.0f);
+
+		g_vertex_buffer_data.push_back(deadPicks[i].getRight() - xOffset);
+		g_vertex_buffer_data.push_back(deadPicks[i].getBottom() + yOffset);
+		g_vertex_buffer_data.push_back(0.0f);
+	}
+
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -158,8 +181,8 @@ void draw()
 	glDrawArrays(GL_LINES, 0, g_vertex_buffer_data.size());
 
 
-	if (allowedPicks < MAX_PICKS)
-		allowedPicks++;
+//	if (allowedPicks < MAX_PICKS)
+	//	allowedPicks++;
 
 	glfwSwapBuffers(window);
 }
@@ -172,6 +195,9 @@ int main()
 		update();
 		draw();
 		glfwPollEvents();
+		int newState = glfwGetKey(window, GLFW_KEY_SPACE);
+		//if(newState == GLFW_PRESS )
+			maxgen++;
 	} // Check if the ESC key was pressed or the window was closed
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
 		glfwWindowShouldClose(window) == 0);
