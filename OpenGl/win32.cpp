@@ -17,7 +17,7 @@ bool noPerpPicks(Toothpick pick);
 #define PICKWIDTH 0.2f
 
 #define PICK_OFFSET 0.02f
-#define MAX_GEN 10
+#define MAX_GEN 50000
 
 std::vector<Toothpick> picks;
 std::vector<Toothpick> deadPicks;
@@ -105,18 +105,19 @@ void update()
 					setSides(&picks[picks.size() - 1]);
 				}
 			}
-			//deadPicks.push_back(picks[j]);
-		//	picks.erase(picks.begin()); //very slow consider a queue
 			N++;
 		}
+		for (int i = size; i > 0; i--)
+		{
+			deadPicks.push_back(picks[0]);
+			picks.erase(picks.begin());
+		}
 	}
-
-
 }
 
 void draw()
 {	
-	glm::mat4 Projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 10.0f);
+	glm::mat4 Projection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.0f, 50.0f);
 	//glm::mat4 View = glm::lookAt(
 	//	glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
 	//	glm::vec3(0, 0, 0), // and looks at the origin
@@ -150,7 +151,7 @@ void draw()
 	size = static_cast<int>(deadPicks.size());
 	for (int i = 0; i < size; i++)
 	{
-		bool facingUp = picks[i].getFacingUp();
+		bool facingUp = deadPicks[i].getFacingUp();
 		xOffset = (facingUp) ? 0 : PICK_OFFSET;
 		yOffset = (facingUp) ? PICK_OFFSET : 0;
 
