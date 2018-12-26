@@ -17,14 +17,17 @@ bool noPerpPicks(Toothpick pick);
 #define PICKWIDTH 0.2f
 
 #define PICK_OFFSET 0.02f
-#define MAX_PICKS 25
+#define MAX_PICKS 20
 
 std::vector<Toothpick> picks;
-GLuint VertexArrayID;
 int numPicks = 1;
 int allowedPicks;
+
+
+GLuint VertexArrayID;
+
 GLuint programID;
-GLFWwindow* window; // (In the accompanying source code, this variable is global for simplicity)
+GLFWwindow* window; 
 
 int setup()
 {
@@ -58,7 +61,6 @@ int setup()
 
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-
 
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
@@ -106,14 +108,24 @@ void update()
 }
 
 void draw()
-{											   // Clear the screen.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+{	
+	glm::mat4 Projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f);
+	//glm::mat4 View = glm::lookAt(
+	//	glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
+	//	glm::vec3(0, 0, 0), // and looks at the origin
+	//	glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+	//);
+	//glm::mat4 Model = glm::mat4(1.0f);
+	glm::mat4 mvp = Projection;
+	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 	glUseProgram(programID);
 
-	float xOffset, yOffset;
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	float xOffset, yOffset;
 	std::vector<GLfloat> g_vertex_buffer_data;
-	int size = static_cast<int>(picks.size()); //so compiler doesen't complain about size_t vs int
+	int size = static_cast<int>(picks.size()); 
 	for (int i = 0; i < size; i++)
 	{
 		bool facingUp = picks[i].getFacingUp();
