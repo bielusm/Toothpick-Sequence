@@ -8,6 +8,10 @@ private:
 	float width;
 public: 
 	Toothpick(float x, float y, bool facingUp, float width);
+	Toothpick();
+	bool getFacingUp();
+	float getX();
+	float getY();
 	float getLeft();
 	float getRight();
 	float getTop();
@@ -22,5 +26,6 @@ public:
 		none = -1
 	};
 	Dir freeSide();
+	void setCaptured(int dir);
 	void setCaptured(Dir dir);
 };

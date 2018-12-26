@@ -7,11 +7,35 @@
 		this->facingUp = facingUp;
 		this->width = width;
 		if (facingUp)
-			leftFree, rightFree = false;
+		{
+			leftFree = false;
+				rightFree = false;
+		}
 		else
-			bottomFree, topFree = false;
+		{
+			bottomFree = false;
+			topFree = false;
+		}
 		noneFree = false;
 	}
+	Toothpick::Toothpick()
+	{
+	}
+	bool Toothpick::getFacingUp()
+	{
+		return facingUp;
+	}
+
+	float Toothpick::getX()
+	{
+		return x;
+	}
+	float Toothpick::getY()
+	{
+		return y;
+	}
+
+
 	float Toothpick::getLeft()
 	{
 		if (!facingUp)
@@ -71,6 +95,26 @@
 			topFree = false;
 			break;
 		case Dir::bottom:
+			bottomFree = false;
+
+			if (!leftFree && !rightFree && !topFree && !bottomFree)
+				noneFree = true;
+		}
+	}
+	void Toothpick::setCaptured(int dir)
+	{
+		switch (dir)
+		{
+		case 0:
+			leftFree = false;
+			break;
+		case 1:
+			rightFree = false;
+			break;
+		case 2:
+			topFree = false;
+			break;
+		case 3:
 			bottomFree = false;
 
 			if (!leftFree && !rightFree && !topFree && !bottomFree)
