@@ -130,7 +130,7 @@
     <ClCompile Include="world.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gfx.h" />
+    <ClInclude Include="gfx.hpp" />
     <ClInclude Include="loadShaders.hpp" />
     <ClInclude Include="Toothpick.hpp" />
     <ClInclude Include="world.h" />

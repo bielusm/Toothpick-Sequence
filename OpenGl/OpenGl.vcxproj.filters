@@ -38,10 +38,10 @@
     <ClInclude Include="Toothpick.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gfx.h">
+    <ClInclude Include="world.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="world.h">
+    <ClInclude Include="gfx.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

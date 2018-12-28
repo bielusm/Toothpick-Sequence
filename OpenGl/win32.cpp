@@ -1,6 +1,6 @@
 #include "Toothpick.hpp"
 #include "loadshaders.hpp"
-#include "gfx.h"
+#include "gfx.hpp"
 #include "world.h"
 
 #define PICKWIDTH 0.2f
