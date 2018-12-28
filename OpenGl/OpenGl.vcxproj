@@ -123,13 +123,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="gfx.cpp" />
     <ClCompile Include="loadShader.cpp" />
     <ClCompile Include="Toothpick.cpp" />
     <ClCompile Include="win32.cpp" />
+    <ClCompile Include="world.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gfx.h" />
     <ClInclude Include="loadShaders.hpp" />
     <ClInclude Include="Toothpick.hpp" />
+    <ClInclude Include="world.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
